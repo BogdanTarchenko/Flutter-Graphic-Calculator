@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'calculator_engine.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -101,10 +102,26 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                       if (value == 'C') {
                         _display = '0';
                         _expression = '';
+                      } else if (value == '⌫') {
+                        if (_display.length > 1) {
+                          _display = _display.substring(0, _display.length - 1);
+                        } else {
+                          _display = '0';
+                        }
                       } else if (value == '=') {
                         _expression = _display;
+                        final result = CalculatorEngine.evaluate(_display);
+                        if (result != null && !result.isInfinite && !result.isNaN) {
+                          _display = result % 1 == 0 
+                              ? result.toInt().toString() 
+                              : result.toStringAsFixed(6).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+                        } else {
+                          _display = 'Ошибка';
+                        }
                       } else {
-                        if (_display == '0' && value != '.') {
+                        if (_display == '0' && value != '.' && value != 'x') {
+                          _display = value;
+                        } else if (_display == 'Ошибка') {
                           _display = value;
                         } else {
                           _display += value;
