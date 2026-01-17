@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'calculator_engine.dart';
+import 'graph_widget.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -83,11 +84,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               flex: 3,
               child: Container(
                 color: const Color(0xFF1A1F3A),
-                child: const Center(
-                  child: Text(
-                    'График появится здесь',
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                child: GraphWidget(
+                  function: _expression.contains('x') ? _expression : null,
                 ),
               ),
             ),
