@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'calculator_engine.dart';
 
 class GraphWidget extends StatefulWidget {
   final String? function;
@@ -147,62 +148,8 @@ class GraphPainter extends CustomPainter {
   double _evaluateFunction(double x) {
     if (function == null || function!.isEmpty) return 0;
     
-    try {
-      String expr = function!.replaceAll('x', x.toString());
-      expr = expr.replaceAll('sin(', 'math.sin(');
-      expr = expr.replaceAll('cos(', 'math.cos(');
-      expr = expr.replaceAll('tan(', 'math.tan(');
-      expr = expr.replaceAll('^', 'math.pow(');
-      
-      return _simpleEval(expr);
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  double _simpleEval(String expr) {
-    try {
-      expr = expr.replaceAll(' ', '');
-      
-      if (expr.contains('+')) {
-        final parts = expr.split('+');
-        return parts.map((p) => _simpleEval(p)).reduce((a, b) => a + b);
-      }
-      if (expr.contains('-') && !expr.startsWith('-')) {
-        final parts = expr.split('-');
-        return _simpleEval(parts[0]) - _simpleEval(parts[1]);
-      }
-      if (expr.contains('*')) {
-        final parts = expr.split('*');
-        return parts.map((p) => _simpleEval(p)).reduce((a, b) => a * b);
-      }
-      if (expr.contains('/')) {
-        final parts = expr.split('/');
-        return _simpleEval(parts[0]) / _simpleEval(parts[1]);
-      }
-      
-      if (expr.startsWith('math.sin(')) {
-        final arg = expr.substring(9, expr.length - 1);
-        return math.sin(_simpleEval(arg));
-      }
-      if (expr.startsWith('math.cos(')) {
-        final arg = expr.substring(9, expr.length - 1);
-        return math.cos(_simpleEval(arg));
-      }
-      if (expr.startsWith('math.tan(')) {
-        final arg = expr.substring(9, expr.length - 1);
-        return math.tan(_simpleEval(arg));
-      }
-      if (expr.startsWith('math.pow(')) {
-        final args = expr.substring(9, expr.length - 1);
-        final parts = args.split(',');
-        return math.pow(_simpleEval(parts[0]), _simpleEval(parts[1])).toDouble();
-      }
-      
-      return double.parse(expr);
-    } catch (e) {
-      return 0;
-    }
+    final result = CalculatorEngine.evaluate(function!, xValue: x);
+    return result ?? 0;
   }
 
   @override
