@@ -14,10 +14,46 @@ class GraphWidget extends StatefulWidget {
   State<GraphWidget> createState() => _GraphWidgetState();
 }
 
-class _GraphWidgetState extends State<GraphWidget> {
+class _GraphWidgetState extends State<GraphWidget>
+    with SingleTickerProviderStateMixin {
   double _scale = 1.0;
   Offset _panOffset = Offset.zero;
   Offset? _lastPanPosition;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  String? _previousFunction;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+    _animationController.forward();
+  }
+
+  @override
+  void didUpdateWidget(GraphWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.function != widget.function) {
+      _previousFunction = oldWidget.function;
+      _animationController.reset();
+      _animationController.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,13 +75,22 @@ class _GraphWidgetState extends State<GraphWidget> {
       onScaleEnd: (details) {
         _lastPanPosition = null;
       },
-      child: CustomPaint(
-        painter: GraphPainter(
-          function: widget.function,
-          scale: _scale,
-          panOffset: _panOffset,
-        ),
-        child: Container(),
+      child: AnimatedBuilder(
+        animation: _fadeAnimation,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _fadeAnimation.value,
+            child: CustomPaint(
+              painter: GraphPainter(
+                function: widget.function,
+                scale: _scale,
+                panOffset: _panOffset,
+                animationProgress: _fadeAnimation.value,
+              ),
+              child: Container(),
+            ),
+          );
+        },
       ),
     );
   }
@@ -55,11 +100,13 @@ class GraphPainter extends CustomPainter {
   final String? function;
   final double scale;
   final Offset panOffset;
+  final double animationProgress;
 
   GraphPainter({
     this.function,
     required this.scale,
     required this.panOffset,
+    this.animationProgress = 1.0,
   });
 
   @override
@@ -77,8 +124,8 @@ class GraphPainter extends CustomPainter {
       ..strokeWidth = 1;
 
     final graphPaint = Paint()
-      ..color = Colors.deepPurpleAccent
-      ..strokeWidth = 3
+      ..color = Colors.deepPurpleAccent.withOpacity(animationProgress)
+      ..strokeWidth = 3 * animationProgress
       ..style = PaintingStyle.stroke;
 
     for (int i = -20; i <= 20; i++) {
