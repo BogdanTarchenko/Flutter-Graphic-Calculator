@@ -55,6 +55,25 @@ class _GraphWidgetState extends State<GraphWidget>
     super.dispose();
   }
 
+  void _resetView() {
+    setState(() {
+      _scale = 1.0;
+      _panOffset = Offset.zero;
+    });
+  }
+
+  void _zoomIn() {
+    setState(() {
+      _scale = (_scale * 1.2).clamp(0.5, 5.0);
+    });
+  }
+
+  void _zoomOut() {
+    setState(() {
+      _scale = (_scale / 1.2).clamp(0.5, 5.0);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -75,22 +94,76 @@ class _GraphWidgetState extends State<GraphWidget>
       onScaleEnd: (details) {
         _lastPanPosition = null;
       },
-      child: AnimatedBuilder(
-        animation: _fadeAnimation,
-        builder: (context, child) {
-          return Opacity(
-            opacity: _fadeAnimation.value,
-            child: CustomPaint(
-              painter: GraphPainter(
-                function: widget.function,
-                scale: _scale,
-                panOffset: _panOffset,
-                animationProgress: _fadeAnimation.value,
-              ),
-              child: Container(),
+      child: Stack(
+        children: [
+          AnimatedBuilder(
+            animation: _fadeAnimation,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _fadeAnimation.value,
+                child: CustomPaint(
+                  painter: GraphPainter(
+                    function: widget.function,
+                    scale: _scale,
+                    panOffset: _panOffset,
+                    animationProgress: _fadeAnimation.value,
+                  ),
+                  child: Container(),
+                ),
+              );
+            },
+          ),
+          Positioned(
+            right: 16,
+            top: 16,
+            child: Column(
+              children: [
+                _ControlButton(
+                  icon: Icons.add,
+                  onPressed: _zoomIn,
+                ),
+                const SizedBox(height: 8),
+                _ControlButton(
+                  icon: Icons.remove,
+                  onPressed: _zoomOut,
+                ),
+                const SizedBox(height: 8),
+                _ControlButton(
+                  icon: Icons.center_focus_strong,
+                  onPressed: _resetView,
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ControlButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  const _ControlButton({
+    required this.icon,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.deepPurple.withOpacity(0.8),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
       ),
     );
   }
