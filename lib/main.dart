@@ -44,6 +44,7 @@ class CalculatorScreen extends StatefulWidget {
 class _CalculatorScreenState extends State<CalculatorScreen> {
   String _display = '0';
   String _expression = '';
+  List<Map<String, String>> _history = [];
 
   @override
   Widget build(BuildContext context) {
@@ -60,21 +61,47 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      _expression.isEmpty ? '' : _expression,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _display,
-                      style: const TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (_history.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.history, color: Colors.grey),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => _HistoryDialog(history: _history),
+                              );
+                            },
+                          )
+                        else
+                          const SizedBox(width: 48),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                _expression.isEmpty ? '' : _expression,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  color: Colors.grey,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _display,
+                                style: const TextStyle(
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -110,9 +137,17 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                         _expression = _display;
                         final result = CalculatorEngine.evaluate(_display);
                         if (result != null && !result.isInfinite && !result.isNaN) {
-                          _display = result % 1 == 0 
+                          final formattedResult = result % 1 == 0 
                               ? result.toInt().toString() 
                               : result.toStringAsFixed(6).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+                          _display = formattedResult;
+                          _history.insert(0, {
+                            'expression': _expression,
+                            'result': formattedResult,
+                          });
+                          if (_history.length > 10) {
+                            _history.removeLast();
+                          }
                         } else {
                           _display = 'Ошибка';
                         }
@@ -351,6 +386,81 @@ class __CalculatorButtonState extends State<_CalculatorButton>
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryDialog extends StatelessWidget {
+  final List<Map<String, String>> history;
+
+  const _HistoryDialog({required this.history});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF1A1F3A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        constraints: const BoxConstraints(maxHeight: 400),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'История вычислений',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.grey),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const Divider(color: Colors.grey),
+            Expanded(
+              child: history.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'История пуста',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: history.length,
+                      itemBuilder: (context, index) {
+                        final item = history[index];
+                        return ListTile(
+                          title: Text(
+                            item['expression']!,
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          subtitle: Text(
+                            '= ${item['result']!}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
