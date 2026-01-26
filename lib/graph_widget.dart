@@ -234,6 +234,47 @@ class GraphPainter extends CustomPainter {
       axisPaint,
     );
 
+    final textStyle = TextStyle(
+      color: Colors.grey[400]!,
+      fontSize: 12,
+    );
+
+    final textPainter = TextPainter(
+      textDirection: TextDirection.ltr,
+    );
+
+    for (int i = -5; i <= 5; i++) {
+      if (i == 0) continue;
+      
+      final x = centerX + i * pixelsPerUnit;
+      final y = centerY - i * pixelsPerUnit;
+      
+      if (x >= 0 && x <= size.width && i != 0) {
+        textPainter.text = TextSpan(text: i.toString(), style: textStyle);
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(x - textPainter.width / 2, centerY + 5),
+        );
+      }
+      
+      if (y >= 0 && y <= size.height && i != 0) {
+        textPainter.text = TextSpan(text: (-i).toString(), style: textStyle);
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(centerX + 5, y - textPainter.height / 2),
+        );
+      }
+    }
+
+    textPainter.text = const TextSpan(text: '0', style: TextStyle(color: Colors.grey, fontSize: 12));
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(centerX + 5, centerY + 5),
+    );
+
     if (function != null && function!.isNotEmpty && function!.contains('x')) {
       final path = Path();
       bool isFirstPoint = true;
