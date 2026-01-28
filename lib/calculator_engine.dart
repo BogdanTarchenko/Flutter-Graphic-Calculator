@@ -46,6 +46,33 @@ class CalculatorEngine {
       },
     );
     
+    expression = expression.replaceAllMapped(
+      RegExp(r'ln\(([^)]+)\)'),
+      (match) {
+        final arg = match.group(1)!;
+        final value = _evaluateExpression(arg);
+        return value != null && value > 0 ? math.log(value).toString() : '0';
+      },
+    );
+    
+    expression = expression.replaceAllMapped(
+      RegExp(r'log\(([^)]+)\)'),
+      (match) {
+        final arg = match.group(1)!;
+        final value = _evaluateExpression(arg);
+        return value != null && value > 0 ? (math.log(value) / math.log(10)).toString() : '0';
+      },
+    );
+    
+    expression = expression.replaceAllMapped(
+      RegExp(r'sqrt\(([^)]+)\)'),
+      (match) {
+        final arg = match.group(1)!;
+        final value = _evaluateExpression(arg);
+        return value != null && value >= 0 ? math.sqrt(value).toString() : '0';
+      },
+    );
+    
     return expression;
   }
 
@@ -64,40 +91,72 @@ class CalculatorEngine {
     try {
       if (expression.isEmpty) return null;
       
+      if (!_isValidExpression(expression)) return null;
+      
       expression = _processNegativeNumbers(expression);
       
       List<String> tokens = _tokenize(expression);
+      if (tokens.isEmpty) return null;
+      
       List<double> numbers = [];
       List<String> operators = [];
       
       for (String token in tokens) {
         if (_isNumber(token)) {
-          numbers.add(double.parse(token));
+          try {
+            numbers.add(double.parse(token));
+          } catch (e) {
+            return null;
+          }
         } else if (token == '(') {
           operators.add(token);
         } else if (token == ')') {
+          if (operators.isEmpty) return null;
           while (operators.isNotEmpty && operators.last != '(') {
-            _applyOperator(numbers, operators);
+            if (!_applyOperator(numbers, operators)) return null;
           }
+          if (operators.isEmpty) return null;
           operators.removeLast();
         } else if (_isOperator(token)) {
           while (operators.isNotEmpty &&
               _precedence(operators.last) >= _precedence(token) &&
               operators.last != '(') {
-            _applyOperator(numbers, operators);
+            if (!_applyOperator(numbers, operators)) return null;
           }
           operators.add(token);
         }
       }
       
       while (operators.isNotEmpty) {
-        _applyOperator(numbers, operators);
+        if (!_applyOperator(numbers, operators)) return null;
       }
       
-      return numbers.isEmpty ? null : numbers.first;
+      if (numbers.isEmpty) return null;
+      final result = numbers.first;
+      if (result.isInfinite || result.isNaN) return null;
+      return result;
     } catch (e) {
       return null;
     }
+  }
+
+  static bool _isValidExpression(String expression) {
+    if (expression.isEmpty) return false;
+    
+    int openParens = 0;
+    for (int i = 0; i < expression.length; i++) {
+      if (expression[i] == '(') openParens++;
+      if (expression[i] == ')') {
+        openParens--;
+        if (openParens < 0) return false;
+      }
+    }
+    if (openParens != 0) return false;
+    
+    if (RegExp(r'[+\-*/]{2,}').hasMatch(expression)) return false;
+    if (RegExp(r'[+\-*/]$').hasMatch(expression)) return false;
+    
+    return true;
   }
 
   static String _processNegativeNumbers(String expression) {
@@ -159,30 +218,32 @@ class CalculatorEngine {
     return 0;
   }
 
-  static void _applyOperator(List<double> numbers, List<String> operators) {
-    if (numbers.length < 2 || operators.isEmpty) return;
+  static bool _applyOperator(List<double> numbers, List<String> operators) {
+    if (numbers.length < 2 || operators.isEmpty) return false;
     
     String op = operators.removeLast();
     double b = numbers.removeLast();
     double a = numbers.removeLast();
     
-    switch (op) {
-      case '+':
-        numbers.add(a + b);
-        break;
-      case '-':
-        numbers.add(a - b);
-        break;
-      case '*':
-        numbers.add(a * b);
-        break;
-      case '/':
-        if (b != 0) {
+    try {
+      switch (op) {
+        case '+':
+          numbers.add(a + b);
+          break;
+        case '-':
+          numbers.add(a - b);
+          break;
+        case '*':
+          numbers.add(a * b);
+          break;
+        case '/':
+          if (b == 0) return false;
           numbers.add(a / b);
-        } else {
-          numbers.add(double.infinity);
-        }
-        break;
+          break;
+      }
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 }

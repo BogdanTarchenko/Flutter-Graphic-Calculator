@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'calculator_engine.dart';
+import 'app_theme.dart';
+import 'responsive_utils.dart';
 
 class GraphWidget extends StatefulWidget {
   final String? function;
+  final bool isDarkMode;
   
   const GraphWidget({
     super.key,
     this.function,
+    this.isDarkMode = true,
   });
 
   @override
@@ -102,35 +106,39 @@ class _GraphWidgetState extends State<GraphWidget>
               return Opacity(
                 opacity: _fadeAnimation.value,
                 child: CustomPaint(
-                  painter: GraphPainter(
-                    function: widget.function,
-                    scale: _scale,
-                    panOffset: _panOffset,
-                    animationProgress: _fadeAnimation.value,
-                  ),
+        painter: GraphPainter(
+          function: widget.function,
+          scale: _scale,
+          panOffset: _panOffset,
+          animationProgress: _fadeAnimation.value,
+          isDarkMode: widget.isDarkMode,
+        ),
                   child: Container(),
                 ),
               );
             },
           ),
           Positioned(
-            right: 16,
-            top: 16,
+            right: ResponsiveUtils.getAdaptivePadding(context, small: 8, medium: 12, large: 16),
+            top: ResponsiveUtils.getAdaptivePadding(context, small: 8, medium: 12, large: 16),
             child: Column(
               children: [
                 _ControlButton(
                   icon: Icons.add,
                   onPressed: _zoomIn,
+                  isDarkMode: widget.isDarkMode,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: ResponsiveUtils.getAdaptiveSpacing(context, small: 4, medium: 6, large: 8)),
                 _ControlButton(
                   icon: Icons.remove,
                   onPressed: _zoomOut,
+                  isDarkMode: widget.isDarkMode,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: ResponsiveUtils.getAdaptiveSpacing(context, small: 4, medium: 6, large: 8)),
                 _ControlButton(
                   icon: Icons.center_focus_strong,
                   onPressed: _resetView,
+                  isDarkMode: widget.isDarkMode,
                 ),
               ],
             ),
@@ -144,25 +152,31 @@ class _GraphWidgetState extends State<GraphWidget>
 class _ControlButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
+  final bool isDarkMode;
 
   const _ControlButton({
     required this.icon,
     required this.onPressed,
+    required this.isDarkMode,
   });
 
   @override
   Widget build(BuildContext context) {
+    final size = ResponsiveUtils.getAdaptiveFontSize(context, small: 32, medium: 40, large: 48);
+    final iconSize = ResponsiveUtils.getAdaptiveFontSize(context, small: 16, medium: 20, large: 24);
+    final borderRadius = ResponsiveUtils.getBorderRadius(context);
+    
     return Material(
       color: Colors.deepPurple.withOpacity(0.8),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(borderRadius),
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(borderRadius),
         child: Container(
-          width: 40,
-          height: 40,
+          width: size,
+          height: size,
           alignment: Alignment.center,
-          child: Icon(icon, color: Colors.white, size: 20),
+          child: Icon(icon, color: Colors.white, size: iconSize),
         ),
       ),
     );
@@ -174,12 +188,14 @@ class GraphPainter extends CustomPainter {
   final double scale;
   final Offset panOffset;
   final double animationProgress;
+  final bool isDarkMode;
 
   GraphPainter({
     this.function,
     required this.scale,
     required this.panOffset,
     this.animationProgress = 1.0,
+    this.isDarkMode = true,
   });
 
   @override
@@ -189,16 +205,16 @@ class GraphPainter extends CustomPainter {
     final pixelsPerUnit = 50.0 * scale;
 
     final axisPaint = Paint()
-      ..color = Colors.grey[600]!
-      ..strokeWidth = 2;
+      ..color = isDarkMode ? Colors.grey[600]! : Colors.grey[400]!
+      ..strokeWidth = 1.5;
 
     final gridPaint = Paint()
-      ..color = Colors.grey[800]!
-      ..strokeWidth = 1;
+      ..color = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!
+      ..strokeWidth = 0.5;
 
     final graphPaint = Paint()
       ..color = Colors.deepPurpleAccent.withOpacity(animationProgress)
-      ..strokeWidth = 3 * animationProgress
+      ..strokeWidth = 2 * animationProgress
       ..style = PaintingStyle.stroke;
 
     for (int i = -20; i <= 20; i++) {
@@ -234,9 +250,11 @@ class GraphPainter extends CustomPainter {
       axisPaint,
     );
 
+    final textSize = size.width < 600 ? 10.0 : (size.width < 1200 ? 12.0 : 14.0);
+    
     final textStyle = TextStyle(
-      color: Colors.grey[400]!,
-      fontSize: 12,
+      color: isDarkMode ? Colors.grey[400]! : Colors.grey[600]!,
+      fontSize: textSize,
     );
 
     final textPainter = TextPainter(
@@ -268,7 +286,13 @@ class GraphPainter extends CustomPainter {
       }
     }
 
-    textPainter.text = const TextSpan(text: '0', style: TextStyle(color: Colors.grey, fontSize: 12));
+    textPainter.text = TextSpan(
+      text: '0',
+      style: TextStyle(
+        color: isDarkMode ? Colors.grey : Colors.grey[700]!,
+        fontSize: 12,
+      ),
+    );
     textPainter.layout();
     textPainter.paint(
       canvas,
@@ -317,6 +341,7 @@ class GraphPainter extends CustomPainter {
   bool shouldRepaint(GraphPainter oldDelegate) {
     return oldDelegate.function != function ||
         oldDelegate.scale != scale ||
-        oldDelegate.panOffset != panOffset;
+        oldDelegate.panOffset != panOffset ||
+        oldDelegate.isDarkMode != isDarkMode;
   }
 }
